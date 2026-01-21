@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 // config cookie-parser
 app.use(cookieParser());
 
-// Testing Sequelize connection
+// Testing Sequelize connectionnnn
 connectSequelize();
 
 // Routes
