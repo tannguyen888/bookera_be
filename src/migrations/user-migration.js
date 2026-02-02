@@ -26,6 +26,11 @@ module.exports = {
         type: Sequelize.STRING(255),
         allowNull: false,
       },
+      name_change_date: {
+        type: Sequelize.DATE,
+        allowNull: true,
+        defaultValue: null,
+      },
       role_id: {
         type: Sequelize.INTEGER,
         allowNull: false,

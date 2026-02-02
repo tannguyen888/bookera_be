@@ -8,10 +8,20 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      //   User.belongsTo(models.UserRole, { foreignKey: "roleID" });
-      //   User.hasMany(models.UserWatchList, { foreignKey: "userID" });
-      //   User.hasMany(models.UserViewHistory, { foreignKey: "userID" });
-      //   User.hasMany(models.UserReview, { foreignKey: "userID" });
+      User.belongsTo(models.Role, {
+        foreignKey: "role_id",
+        as: "role",
+      });
+
+      User.hasOne(models.UserAccess, {
+        foreignKey: "user_id",
+        as: "user_accesses",
+      });
+
+      User.hasOne(models.UserRecover, {
+        foreignKey: "user_id",
+        as: "user_recover",
+      });
     }
   }
 
@@ -45,6 +55,12 @@ module.exports = (sequelize, DataTypes) => {
       avatar_url: {
         type: DataTypes.STRING(255),
         allowNull: false,
+      },
+
+      name_change_date: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null,
       },
 
       role_id: { type: DataTypes.INTEGER, allowNull: false },

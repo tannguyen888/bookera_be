@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const { connectSequelize } = require("./config/sequelize_db_orm");
 config();
 
+
 const app = express();
 const port = process.env.BOOKERA_BE_PORT || 8080;
 const hostname = process.env.BOOKERA_BE_HOSTNAME;
