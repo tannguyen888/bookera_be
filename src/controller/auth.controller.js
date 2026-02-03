@@ -1,97 +1,176 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const authService = require("../services/auth.service");
+const {
+  signUpService,
+  signInService,
+  signUpWithGoogleService,
+  signInWithGoogleService,
+  uploadAvatarService,
+  updateNameService,
+  updatePasswordService,
+  deleteAccountService,
+  sendRecoverCodeService,
+  verifyRecoverCodeService,
+  resetPasswordService,
+} = require("../services/auth_service");
 
+/* ======================
+   HELPER
+====================== */
 const generateToken = (user) =>
   jwt.sign(
     {
       userId: user.id,
-      username: user.username,
-      role: user.role,
+      role_id: user.role_id,
     },
     process.env.JWT_SECRET_KEY,
     { expiresIn: "2h" }
   );
 
+const userResponse = (user) => ({
+  id: user.id,
+  username: user.username,
+  email: user.email,
+  avatar_url: user.avatar_url,
+  role_id: user.role_id,
+});
+
+/* ======================
+   SIGN UP
+====================== */
 exports.signUp = async (req, res) => {
-  const { username, email, password } = req.body;
+  try {
+    const data = req.body;
 
-  const existing = await authService.findByEmail(email);
-  if (existing)
-    return res.status(400).json({ message: "User already exists" });
+    // Google signup
+    if (data.credential) {
+      const user = await signUpWithGoogleService(data.credential);
+      const token = generateToken(user);
 
-  const hashed = await bcrypt.hash(password, 10);
-  const user = await authService.createUser({
-    username,
-    email,
-    password: hashed,
-  });
+      return res.status(201).json({
+        user: userResponse(user),
+        token,
+      });
+    }
 
-  res.status(201).json({ user });
+    const { username, email, password } = data;
+
+    if (!username || !email || !password)
+      return res.status(400).json({ message: "Missing required fields" });
+
+    if (password.length < 6)
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
+
+    const user = await signUpService({
+      username,
+      email,
+      password,
+    });
+
+    const token = generateToken(user);
+
+    res.status(201).json({
+      user: userResponse(user),
+      token,
+    });
+  } catch (err) {
+    console.error("SIGN UP ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
 };
 
+/* ======================
+   SIGN IN
+====================== */
 exports.signIn = async (req, res) => {
-  const { username, password } = req.body;
+  try {
+    const data = req.body;
 
-  const user = await authService.findByUsername(username);
-  if (!user)
-    return res.status(400).json({ message: "User not found" });
+    // Google login
+    if (data.credential) {
+      const user = await signInWithGoogleService(data.credential);
+      const token = generateToken(user);
 
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch)
-    return res.status(401).json({ message: "Wrong password" });
+      return res.json({
+        user: userResponse(user),
+        token,
+      });
+    }
 
-  const token = generateToken(user);
+    const { email, password } = data;
 
-  res.json({ user, token });
+    if (!email || !password)
+      return res.status(400).json({ message: "Missing email or password" });
+
+    const user = await signInService(email, password);
+
+    const token = generateToken(user);
+
+    res.json({
+      user: userResponse(user),
+      token,
+    });
+  } catch (err) {
+    console.error("SIGN IN ERROR:", err);
+    res.status(401).json({ message: err.message });
+  }
 };
 
+/* ======================
+   LOGOUT
+====================== */
 exports.logout = async (req, res) => {
-  // JWT → logout phía client
+  // JWT → FE tự xoá token
   res.json({ message: "Logged out successfully" });
 };
 
+/* ======================
+   PROFILE
+====================== */
 exports.uploadAvatar = async (req, res) => {
-  await authService.updateAvatar(req.user.userId, req.file.filename);
+  await uploadAvatarService(req.user.userId, req.file.filename);
   res.json({ message: "Avatar updated" });
 };
 
 exports.updateName = async (req, res) => {
-  await authService.updateName(req.user.userId, req.body.username);
+  await updateNameService(req.user.userId, req.body.username);
   res.json({ message: "Name updated" });
 };
 
 exports.updatePassword = async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
-  const user = await authService.findById(req.user.userId);
-
-  const isMatch = await bcrypt.compare(oldPassword, user.password);
-  if (!isMatch)
-    return res.status(401).json({ message: "Wrong old password" });
-
-  const hashed = await bcrypt.hash(newPassword, 10);
-  await authService.updatePassword(user.id, hashed);
-
+  await updatePasswordService(
+    req.user.userId,
+    req.body.oldPassword,
+    req.body.newPassword
+  );
   res.json({ message: "Password updated" });
 };
 
+/* ======================
+   DELETE ACCOUNT
+====================== */
 exports.deleteAccount = async (req, res) => {
-  await authService.deleteUser(req.user.userId);
+  await deleteAccountService(req.user.userId);
   res.json({ message: "Account deleted" });
 };
 
+/* ======================
+   PASSWORD RECOVERY
+====================== */
 exports.sendRecoverCode = async (req, res) => {
-  await authService.sendRecoverCode(req.body.email);
+  await sendRecoverCodeService(req.body.email);
   res.json({ message: "Recovery code sent" });
 };
 
 exports.verifyRecoverCode = async (req, res) => {
-  await authService.verifyRecoverCode(req.body.email, req.body.code);
+  await verifyRecoverCodeService(req.body.email, req.body.code);
   res.json({ message: "Code verified" });
 };
 
 exports.resetPassword = async (req, res) => {
-  await authService.resetPassword(
+  await resetPasswordService(
     req.body.email,
     req.body.code,
     req.body.newPassword

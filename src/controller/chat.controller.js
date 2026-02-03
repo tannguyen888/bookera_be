@@ -1,39 +1,217 @@
-const chatService = require('../services/chat.service');
-const jwt = require('jsonwebtoken');
+const chatService = require("../services/chat.service");
+const userConversationService = require("../services/userConversation.service");
 
-module.exports = (io) => {
-
-    // middleware check JWT cho socket
-    io.use((socket, next) => {
-        try {
-            const token = socket.handshake.auth.token;
-            const user = jwt.verify(token, process.env.JWT_SECRET_KEY);
-            socket.user = user;
-            next();
-        } catch {
-            next(new Error("Unauthorized"));
-        }
+// ==================== Conversation ====================
+exports.createConversation = async (req, res) => {
+  try {
+    const { title, type, members } = req.body;
+    const conversation = await chatService.createConversation({
+      title,
+      type,
+      createdBy: req.user.id,
     });
 
-    io.on('connection', (socket) => {
-        console.log('User connected:', socket.user.username);
+    // add creator + members
+    await userConversationService.addUserToConversation(
+      req.user.id,
+      conversation.id
+    );
 
-        socket.on('joinRoom', (roomId) => {
-            socket.join(roomId);
-        });
+    if (Array.isArray(members)) {
+      for (const memberId of members) {
+        await userConversationService.addUserToConversation(
+          memberId,
+          conversation.id
+        );
+      }
+    }
 
-        socket.on('sendMessage', async (data) => {
-            const message = await chatService.saveMessage({
-                from: socket.user.username,
-                roomId: data.roomId,
-                text: data.text
-            });
-
-            io.to(data.roomId).emit('newMessage', message);
-        });
-
-        socket.on('disconnect', () => {
-            console.log('User disconnected');
-        });
-    });
+    res.status(201).json(conversation);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
+
+exports.getMyConversations = async (req, res) => {
+  try {
+    const conversations = await userConversationService.getUserConversations(
+      req.user.id
+    );
+    res.json(conversations);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getConversationById = async (req, res) => {
+  try {
+    const conversation = await chatService.getConversationById(
+      req.params.id
+    );
+    res.json(conversation);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateConversation = async (req, res) => {
+  try {
+    const { title } = req.body;
+    const updated = await chatService.updateConversation(
+      req.params.id,
+      title
+    );
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteConversation = async (req, res) => {
+  try {
+    await chatService.deleteConversation(req.params.id);
+    res.json({ message: "Conversation deleted" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ==================== Members ====================
+exports.addMember = async (req, res) => {
+  try {
+    const { userId, conversationId } = req.body;
+    await userConversationService.addUserToConversation(userId, conversationId);
+    res.status(201).json({ message: "User added" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.removeMember = async (req, res) => {
+  try {
+    const { userId, conversationId } = req.body;
+    await userConversationService.removeUserFromConversation(userId, conversationId);
+    res.json({ message: "User removed" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getConversationMembers = async (req, res) => {
+  try {
+    const members = await userConversationService.getConversationMembers(req.params.conversationId);
+    res.json(members);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ==================== Messages ====================
+exports.sendMessage = async (req, res) => {
+  try {
+    const { conversationId, content, type } = req.body;
+    const message = await chatService.sendMessage({
+      conversationId,
+      senderId: req.user.id,
+      content,
+      type,
+    });
+    res.status(201).json(message);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getMessages = async (req, res) => {
+  try {
+    const messages = await chatService.getMessages(req.params.conversationId);
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.editMessage = async (req, res) => {
+  try {
+    const { messageId, content } = req.body;
+    const message = await chatService.editMessage(messageId, req.user.id, content);
+    res.json(message);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.body;
+    await chatService.deleteMessage(messageId, req.user.id);
+    res.json({ message: "Message deleted" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ==================== Reactions ====================
+exports.addReaction = async (req, res) => {
+  try {
+    const { messageId, emoji } = req.body;
+    const reaction = await chatService.addReaction(messageId, req.user.id, emoji);
+    res.json(reaction);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.removeReaction = async (req, res) => {
+  try {
+    const { messageId, emoji } = req.body;
+    await chatService.removeReaction(messageId, req.user.id, emoji);
+    res.json({ message: "Reaction removed" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ==================== Seen / Typing ====================
+exports.markSeen = async (req, res) => {
+  try {
+    const { conversationId } = req.body;
+    await chatService.markSeen(conversationId, req.user.id);
+    res.json({ message: "Conversation marked as seen" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.typing = async (req, res) => {
+  try {
+    const { conversationId } = req.body;
+    await chatService.typing(conversationId, req.user.id);
+    res.json({ message: "Typing event sent" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ==================== Search / Utilities ====================
+exports.searchMessages = async (req, res) => {
+  try {
+    const { conversationId, keyword } = req.query;
+    const results = await chatService.searchMessages(conversationId, keyword);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getUnreadCount = async (req, res) => {
+  try {
+    const counts = await chatService.getUnreadCount(req.user.id);
+    res.json(counts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ==================== End of Controller ====================
+// ... Có thể tiếp tục thêm pagination, mentions, pinned messages, file upload ...

@@ -1,44 +1,61 @@
 const express = require("express");
-const {
-  signUpController,
-  signInController,
-  logoutController,
-  getCurrentUserController,
-  uploadAvatarController,
-  updateNameController,
-  updatePasswordController,
-  deleteAccountController,
-  sendRecoverCodeController,
-  verifyRecoverCodeController,
-  resetPasswordController,
-} = require("../controller/auth_controller");
+const authController = require("../controller/auth.controller");
 const { verifyAuth } = require("../middleware/auth_middleware");
 const { upload } = require("../middleware/multer");
 
-const apiRoutes = express.Router();
+const router = express.Router();
 
-// Auth Routes (Public)
-apiRoutes.post("/auth/sign_up", signUpController);
-apiRoutes.post("/auth/sign_in", signInController);
-apiRoutes.post("/auth/logout", logoutController);
 
-// Password Recovery Routes (Public)
-apiRoutes.post("/auth/password-recovery", sendRecoverCodeController);
-apiRoutes.post("/auth/password-recovery/verification", verifyRecoverCodeController);
-apiRoutes.patch("/auth/password-recovery", resetPasswordController);
+router.post("/auth/sign_up", authController.signUp);
+router.post("/auth/sign_in", authController.signIn);
+router.post("/auth/logout", authController.logout);
 
-// Protected Auth Routes
-apiRoutes.get("/auth/me", verifyAuth, getCurrentUserController);
-apiRoutes.put("/auth/avatar", verifyAuth, upload.single("file"), uploadAvatarController);
-apiRoutes.put("/auth/name", verifyAuth, updateNameController);
-apiRoutes.put("/auth/password", verifyAuth, updatePasswordController);
-apiRoutes.delete("/auth/account", verifyAuth, deleteAccountController);
 
-// Status route
-apiRoutes.get("/status", (req, res) => {
-  res.json({ status: "API is running" });
-});
+router.post(
+  "/auth/password-recovery",
+  authController.sendRecoverCode
+);
+router.post(
+  "/auth/password-recovery/verification",
+  authController.verifyRecoverCode
+);
+router.patch(
+  "/auth/password-recovery",
+  authController.resetPassword
+);
 
-module.exports = {
-  apiRoutes,
-};
+router.put(
+  "/auth/avatar",
+  verifyAuth,
+  upload.single("file"),
+  authController.uploadAvatar
+);
+
+router.put(
+  "/auth/name",
+  verifyAuth,
+  authController.updateName
+);
+
+router.put(
+  "/auth/password",
+  verifyAuth,
+  authController.updatePassword
+);
+
+router.delete(
+  "/auth/account",
+  verifyAuth,
+  authController.deleteAccount
+);
+
+router.post("/add", auth, controller.addMember);
+router.post("/remove", auth, controller.removeMember);
+router.get("/my", auth, controller.getMyConversations);
+router.get(
+  "/:conversationId/members",
+  auth,
+  controller.getConversationMembers
+);
+
+module.exports = router;

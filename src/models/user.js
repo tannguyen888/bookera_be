@@ -5,7 +5,7 @@ const bcrypt = require("bcrypt");
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
-<<<<<<< HEAD
+
       User.belongsTo(models.Role, {
         foreignKey: "role_id",
         as: "role",
@@ -20,14 +20,14 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "user_id",
         as: "user_recover",
       });
-=======
+
       // associations define in models/index.js
     }
 
   
     async comparePassword(plainPassword) {
       return bcrypt.compare(plainPassword, this.password);
->>>>>>> e339f1d (fix jwt auth.service and auth.controller)
+
     }
   }
 
@@ -63,7 +63,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true, 
       },
 
-<<<<<<< HEAD
+
       name_change_date: {
         type: DataTypes.DATE,
         allowNull: true,
@@ -71,13 +71,13 @@ module.exports = (sequelize, DataTypes) => {
       },
 
       role_id: { type: DataTypes.INTEGER, allowNull: false },
-=======
+
       role_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 1, 
       },
->>>>>>> e339f1d (fix jwt auth.service and auth.controller)
+
     },
     {
       sequelize,
