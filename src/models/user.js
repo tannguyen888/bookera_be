@@ -1,13 +1,11 @@
 "use strict";
 const { Model } = require("sequelize");
+const bcrypt = require("bcrypt");
+
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
+<<<<<<< HEAD
       User.belongsTo(models.Role, {
         foreignKey: "role_id",
         as: "role",
@@ -22,6 +20,14 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "user_id",
         as: "user_recover",
       });
+=======
+      // associations define in models/index.js
+    }
+
+  
+    async comparePassword(plainPassword) {
+      return bcrypt.compare(plainPassword, this.password);
+>>>>>>> e339f1d (fix jwt auth.service and auth.controller)
     }
   }
 
@@ -54,9 +60,10 @@ module.exports = (sequelize, DataTypes) => {
 
       avatar_url: {
         type: DataTypes.STRING(255),
-        allowNull: false,
+        allowNull: true, 
       },
 
+<<<<<<< HEAD
       name_change_date: {
         type: DataTypes.DATE,
         allowNull: true,
@@ -64,6 +71,13 @@ module.exports = (sequelize, DataTypes) => {
       },
 
       role_id: { type: DataTypes.INTEGER, allowNull: false },
+=======
+      role_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 1, 
+      },
+>>>>>>> e339f1d (fix jwt auth.service and auth.controller)
     },
     {
       sequelize,
@@ -71,7 +85,20 @@ module.exports = (sequelize, DataTypes) => {
       tableName: "users",
       timestamps: true,
       underscored: true,
-    },
+
+      hooks: {
+        
+        beforeCreate: async (user) => {
+          user.password = await bcrypt.hash(user.password, 10);
+        },
+        beforeUpdate: async (user) => {
+          if (user.changed("password")) {
+            user.password = await bcrypt.hash(user.password, 10);
+          }
+        },
+      },
+    }
   );
+
   return User;
 };

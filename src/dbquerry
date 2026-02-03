@@ -1,0 +1,177 @@
+create database bookera_database
+
+use bookera_database;
+CREATE TABLE role (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    role_name VARCHAR(255) NOT NULL UNIQUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- USER
+-- =========================
+CREATE TABLE user (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    avatar_url VARCHAR(255),
+    created_at DATE,
+    role_id INT,
+    CONSTRAINT fk_user_role
+        FOREIGN KEY (role_id) REFERENCES role(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- USER ACCESS (JWT / TOKEN)
+-- =========================
+CREATE TABLE user_access (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    access_token VARCHAR(255) NOT NULL,
+    expire_date DATE,
+    CONSTRAINT fk_access_user
+        FOREIGN KEY (user_id) REFERENCES user(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- FAV WORK
+-- =========================
+CREATE TABLE fav_work (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    work_id VARCHAR(255) NOT NULL,
+    work_name VARCHAR(255),
+    cover_url VARCHAR(255),
+    first_publish_year INT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- USER - FAV WORK (M:N)
+-- =========================
+CREATE TABLE user_fav_work (
+    user_id INT NOT NULL,
+    fav_work_id INT NOT NULL,
+    PRIMARY KEY (user_id, fav_work_id),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (fav_work_id) REFERENCES fav_work(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- CONVERSATION
+-- =========================
+CREATE TABLE conversation (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    created_at DATE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- USER - CONVERSATION (P2P / GROUP)
+-- =========================
+CREATE TABLE user_conversation (
+    user_id INT NOT NULL,
+    conversation_id INT NOT NULL,
+    PRIMARY KEY (user_id, conversation_id),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (conversation_id) REFERENCES conversation(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- MESSAGE
+-- =========================
+CREATE TABLE message (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    conversation_id INT NOT NULL,
+    content VARCHAR(255) NOT NULL,
+    type INT,
+    created_at DATE,
+    sender_id INT NOT NULL,
+    FOREIGN KEY (conversation_id) REFERENCES conversation(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES user(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- USER BOOK
+-- =========================
+CREATE TABLE user_book (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255),
+    author VARCHAR(255),
+    price INT,
+    upload_time DATE,
+    `condition` VARCHAR(255),
+    description VARCHAR(255),
+    status VARCHAR(255),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- USER BOOK IMAGE
+-- =========================
+CREATE TABLE user_book_image (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_book_id INT NOT NULL,
+    image_url VARCHAR(255),
+    FOREIGN KEY (user_book_id) REFERENCES user_book(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- BOOK PAYMENT
+-- =========================
+CREATE TABLE book_payment (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_book_id INT NOT NULL,
+    FOREIGN KEY (user_book_id) REFERENCES user_book(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- BOOK WISHLIST
+-- =========================
+CREATE TABLE book_wishlist (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT,
+    book_image_url VARCHAR(255),
+    book_price INT,
+    book_owner VARCHAR(255)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- USER - BOOK WISHLIST (M:N)
+-- =========================
+CREATE TABLE user_book_wishlist (
+    user_book_id INT NOT NULL,
+    book_wishlist_id INT NOT NULL,
+    PRIMARY KEY (user_book_id, book_wishlist_id),
+    FOREIGN KEY (user_book_id) REFERENCES user_book(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_wishlist_id) REFERENCES book_wishlist(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ 
+
+
+
+
+
+ CREATE USER 'bookera'@'localhost' IDENTIFIED BY 'lab123';
+
+-- Tạo database (nếu chưa có)
+CREATE DATABASE IF NOT EXISTS bookera_db;
+
+-- Cấp quyền đầy đủ cho user này trên database
+GRANT ALL PRIVILEGES ON bookera_db.* TO 'bookera'@'localhost';
+
+-- Áp dụng quyền
+FLUSH PRIVILEGES;
+
+
+SHOW DATABASES;
+
+SELECT User, Host FROM mysql.user WHERE User='bookera';
+
+-- Xem hash password của user MySQL
+SELECT User, Host, authentication_string 
+FROM mysql.user 
+WHERE User = 'bookera';
+
+SHOW GRANTS FOR 'bookera'@'localhost';
+
+GRANT ALL PRIVILEGES ON `bookera_database`.* TO 'bookera'@'localhost'

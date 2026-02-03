@@ -9,7 +9,8 @@ config();
 
 const app = express();
 const port = process.env.BOOKERA_BE_PORT || 8080;
-const hostname = process.env.BOOKERA_BE_HOSTNAME;
+const hostname = process.env.BOOKERA_BE_HOSTNAME || 'localhost';
+const logger = require('./lib/logger');
 
 configCORS(app);
 
@@ -21,11 +22,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Testing Sequelize connectionnnn
+
+// Routes — mount under both /api and root to be compatible with frontend baseURL variations
+app.use("/api", apiRoutes);
+app.use("/", apiRoutes);
+
 connectSequelize();
 
-// Routes
-app.use("/api", apiRoutes);
-
 app.listen(port, () => {
-  console.log(`Example app listening on http://${hostname}:${port}`);
+  logger.info(`Example app listening on http://${hostname}:${port}`);
 });

@@ -24,23 +24,20 @@ apiRoutes.post("/auth/logout", logoutController);
 
 // Password Recovery Routes (Public)
 apiRoutes.post("/auth/password-recovery", sendRecoverCodeController);
-apiRoutes.post(
-  "/auth/password-recovery/verification",
-  verifyRecoverCodeController,
-);
+apiRoutes.post("/auth/password-recovery/verification", verifyRecoverCodeController);
 apiRoutes.patch("/auth/password-recovery", resetPasswordController);
 
 // Protected Auth Routes
 apiRoutes.get("/auth/me", verifyAuth, getCurrentUserController);
-apiRoutes.put(
-  "/auth/avatar",
-  verifyAuth,
-  upload.single("file"),
-  uploadAvatarController,
-);
+apiRoutes.put("/auth/avatar", verifyAuth, upload.single("file"), uploadAvatarController);
 apiRoutes.put("/auth/name", verifyAuth, updateNameController);
 apiRoutes.put("/auth/password", verifyAuth, updatePasswordController);
 apiRoutes.delete("/auth/account", verifyAuth, deleteAccountController);
+
+// Status route
+apiRoutes.get("/status", (req, res) => {
+  res.json({ status: "API is running" });
+});
 
 module.exports = {
   apiRoutes,
